@@ -17,3 +17,171 @@ This project uses the **Retail Transactions Dataset** from Kaggle.
 3. Place the file in:
 
    data/raw/Retail_Transactions_Dataset.csv
+
+## 1. Project Overview
+
+This project focuses on designing a clean and consistent dimensional data model from a retail transactional dataset.
+
+- The goal was not only to process the dataset, but to:
+- Analyze its structure
+- Define the correct grain of the fact table
+- Prevent metric inconsistencies
+- Design a scalable dimensional model
+
+The result is a modular ETL pipeline that builds:
+- Dimension tables
+- A transaction-level fact table
+- A bridge table to handle many-to-many relationships
+
+## 2. Initial Dataset Observations
+
+The dataset contains:
+
+1,000,000 transactions
+- A list of products per transaction
+- Aggregated metrics at transaction level:
+   - Total_Cost
+   - Total_Items
+- Multiple descriptive attributes (City, Store_Type, Payment_Method, etc.)
+
+Key observations:
+
+- The Product column contains multiple products stored as stringified lists.
+- Metrics are aggregated at transaction level, not product level.
+- Dates included time components that created unnecessary cardinality.
+- Some attributes required categorization for memory optimization.
+
+## 3️. Grain Definition (Critical Decision)
+
+The most important architectural decision was defining the grain of the fact table.
+
+Initially, the data was exploded to transaction-product level.
+However, this introduced a critical issue:
+
+Metrics (Total_Cost, Total_Items) were defined at transaction level.
+
+Lowering the grain caused metric inflation and analytical inconsistencies.
+
+Final decision:
+
+The fact table grain is defined at transaction level.
+One row represents one business transaction event.
+
+## 4️. Dimensional Model
+### Dimensions
+
+- Dim_Product
+- Dim_Customer
+- Dim_Date
+- Dim_Store_Context
+
+Each dimension includes surrogate keys for warehouse consistency.
+
+Low-cardinality attributes were converted to categorical types to optimize memory usage.
+
+Dates were normalized to day-level granularity to avoid artificial cardinality growth.
+
+                         +------------------+
+                         |   Dim_Product    |
+                         |------------------|
+                         | Product_ID (PK)  |
+                         | Product          |
+                         +--------+---------+
+                                  ^
+                                  |
+                                  |
+                    +-------------+--------------+
+                    | Bridge_Transaction_Product |
+                    |----------------------------|
+                    | Transaction_SK (FK)        |
+                    | Product_ID (FK)            |
+                    +-------------+--------------+
+                                  |
+                                  v
++-------------------+    +-----------------------+    +-------------------+
+|   Dim_Customer    |    |   Fact_Transactions   |    |     Dim_Date      |
+|-------------------|    |-----------------------|    |-------------------|
+| Customer_ID (PK)  |<---| Transaction_SK (PK)   |--->| Date_ID (PK)      |
+| Customer_Name     |    | Transaction_ID (BK)    |   | Date              |
++-------------------+    | Customer_ID (FK)       |   | Year              |
+                         | Date_ID (FK)           |   | Month             |
++-------------------+    | Store_Context_ID (FK)  |   | Day               |
+| Dim_Store_Context |    | Total_Items            |   +-------------------+
+|-------------------|    | Total_Cost             |
+| Store_Context_ID  |<---| Discount_Applied       |
+| City              |    | Promotion              |
+| Store_Type        |    +------------------------+
++-------------------+
+
+## 5. Fact Table
+### Fact_Transactions
+
+Grain:
+One row per transaction.
+
+Includes:
+- Transaction_SK (surrogate key)
+- Business Transaction_ID
+- Foreign keys to dimensions
+- Transaction-level metrics
+
+This ensures metric integrity and prevents aggregation errors.
+
+## 6️. Bridge Table
+### Bridge_Transaction_Product
+
+Because one transaction may include multiple products, a many-to-many relationship exists.
+
+Instead of lowering the fact grain, a bridge table was implemented:
+- Transaction_SK
+- Product_ID
+
+This preserves product-level analysis capability without inflating financial metrics.
+
+## 7️. Architectural Decisions
+
+- Key engineering decisions:
+- Preserve metric-grain consistency.
+- Avoid duplicate metric inflation.
+- Normalize non-atomic product lists.
+- Optimize categorical fields.
+- Separate ETL stages into modular scripts:
+   - extract.py
+   - transform.py
+   - dimensions.py
+   - facts.py
+   - main.py
+
+## 8️. Limitations
+
+- No unit-level pricing or quantity per product.
+- Cannot compute product-level revenue.
+- Customer demographic category removed due to inconsistency.
+
+## 9️. Future Improvements
+
+- Add product-level metrics if available.
+- Load data into a relational database (PostgreSQL).
+- Add incremental loading logic.
+- Implement indexing strategies.
+- Add data validation layer.
+
+## 10. Lessons Learned
+
+This project reinforced that Data Engineering is fundamentally about architecture and analytical integrity, not just coding.
+
+Key takeaways:
+- The grain of a fact table determines the validity of all metrics.
+- Exploding data without aligning metrics to the correct grain can silently inflate results.
+- Not all modeling decisions are technical — many are semantic.
+- A clean dimensional design prevents incorrect analytical conclusions.
+- Performance issues often reveal structural design problems (e.g., drop_duplicates on non-atomic fields).
+- Many engineering decisions are about preventing future misuse of the data.
+
+Most importantly, this project shifted the focus from:
+
+"How do I process this dataset?"
+
+to:
+
+"How do I design a model that guarantees correct analysis?"

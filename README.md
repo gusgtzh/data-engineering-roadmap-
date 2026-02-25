@@ -185,3 +185,15 @@ Most importantly, this project shifted the focus from:
 to:
 
 "How do I design a model that guarantees correct analysis?"
+
+## Data Warehouse Output
+
+The final dimensional model is persisted in a SQLite database (retail_dw.db), allowing direct SQL querying of:
+- dim_product
+- dim_customer
+- dim_date
+- dim_store_context
+- fact_transactions
+- bridge_transaction_product
+
+This transforms the project from a pandas-only pipeline into a functional mini Data Warehouse.

@@ -98,20 +98,20 @@ Dates were normalized to day-level granularity to avoid artificial cardinality g
                     +-------------+--------------+
                                   |
                                   v
-+-------------------+    +-----------------------+    +-------------------+
-|   Dim_Customer    |    |   Fact_Transactions   |    |     Dim_Date      |
-|-------------------|    |-----------------------|    |-------------------|
-| Customer_ID (PK)  |<---| Transaction_SK (PK)   |--->| Date_ID (PK)      |
-| Customer_Name     |    | Transaction_ID (BK)    |   | Date              |
-+-------------------+    | Customer_ID (FK)       |   | Year              |
+      +-------------------+    +-----------------------+    +-------------------+
+      |   Dim_Customer    |    |   Fact_Transactions   |    |     Dim_Date      |
+      |-------------------|    |-----------------------|    |-------------------|
+      | Customer_ID (PK)  |<---| Transaction_SK (PK)   |--->| Date_ID (PK)      |
+      | Customer_Name     |    | Transaction_ID (BK)    |   | Date              |
+      +-------------------+    | Customer_ID (FK)       |   | Year              |
                          | Date_ID (FK)           |   | Month             |
-+-------------------+    | Store_Context_ID (FK)  |   | Day               |
-| Dim_Store_Context |    | Total_Items            |   +-------------------+
-|-------------------|    | Total_Cost             |
-| Store_Context_ID  |<---| Discount_Applied       |
-| City              |    | Promotion              |
-| Store_Type        |    +------------------------+
-+-------------------+
+      +-------------------+    | Store_Context_ID (FK)  |   | Day               |
+      | Dim_Store_Context |    | Total_Items            |   +-------------------+
+      |-------------------|    | Total_Cost             |
+      | Store_Context_ID  |<---| Discount_Applied       |
+      | City              |    | Promotion              |
+      | Store_Type        |    +------------------------+
+      +-------------------+
 
 ## 5. Fact Table
 ### Fact_Transactions

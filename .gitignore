@@ -3,5 +3,4 @@ __pycache__/
 *.pyc
 data/raw/
 *.db
-!retail_dw.db
 *.db-journal

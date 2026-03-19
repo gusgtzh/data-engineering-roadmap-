@@ -1,6 +1,5 @@
 # data-engineering-roadmap-
-Learning-oriented Data Engineering project (ETL, SQL, Python)
-
+End-to-end Data Engineering project focused on dimensional modeling, SQL validation, and analytical integrity
 
 ## Dataset
 
@@ -197,3 +196,62 @@ The final dimensional model is persisted in a SQLite database (retail_dw.db), al
 - bridge_transaction_product
 
 This transforms the project from a pandas-only pipeline into a functional mini Data Warehouse.
+
+## 11. SQL Analysis & Data Validation
+
+This project was extended beyond data modeling into analytical validation and SQL-based debugging to ensure the integrity of the Data Warehouse.
+
+## Key Areas Covered
+Metric Validation
+
+Validated consistency between fact tables and joins:
+
+SELECT SUM(Total_Cost) FROM fact_transactions;
+
+SELECT SUM(ft.Total_Cost)
+FROM fact_transactions ft
+JOIN bridge_transaction_product btp
+ON ft.Transaction_SK = btp.Transaction_SK;
+
+This revealed metric inflation when joining tables with different grains.
+
+## Data Quality Checks
+
+Implemented validation queries to ensure structural integrity:
+- Duplicate detection in fact tables
+- Orphan records between fact and bridge
+- Grain consistency validation
+Example:
+
+SELECT Transaction_SK, COUNT(*)
+FROM fact_transactions
+GROUP BY Transaction_SK
+HAVING COUNT(*) > 1;
+
+## Business Metrics (SQL)
+
+Computed analytical metrics directly from the Data Warehouse:
+
+-- % of transactions with ≥3 products per day
+SELECT 
+    dd.Date,
+    SUM(CASE WHEN t3.Transaction_SK IS NOT NULL THEN 1 ELSE 0 END) * 1.0 
+    / COUNT(*) AS pct_trans_3plus
+FROM fact_transactions ft
+JOIN dim_date dd ON ft.Date_ID = dd.Date_ID
+LEFT JOIN (
+    SELECT Transaction_SK
+    FROM fact_transactions ft 
+    JOIN bridge_transaction_product btp
+        ON ft.Transaction_SK = btp.Transaction_SK
+    GROUP BY ft.Transaction_SK
+    HAVING COUNT(*) >= 3
+) t3 ON ft.Transaction_SK = t3.Transaction_SK
+GROUP BY dd.Date;
+
+## Key Learnings from SQL Layer
+
+- Joins across different grains can silently inflate metrics
+- Analytical correctness depends on aligning metric grain with query grain
+- Many real-world errors are semantic, not syntactic
+- Data validation queries are critical in production pipelines
